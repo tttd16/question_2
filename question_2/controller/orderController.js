@@ -2,26 +2,24 @@ const asyncHandler = require("express-async-handler");
 const orderModel = require("../models/orderModel.js");
 const productModel = require("../models/productModel");
 
-const getOrders = asyncHandler(async (req, res) => {
-  const orders = await orderModel.find({});
 
-  const a = await productModel.find({});
+const getOrderList = asyncHandler(async (req, res) => {
+  try {
+    const orders = await orderModel.find().lean().exec();
 
-  const ordersMap = orders.map((e) => {
-    const item = e.item;
-    const fillProduct = a.find((element) => element.sku === item);
-
-    console.log("aaaa");
-
-    return {
-      ...e,
-      description: fillProduct.description,
-    };
-  });
-  console.log(ordersMap);
-  res.json(ordersMap);
-});
+    for (let i = 0; i < orders.length; i++) {
+      const orderItem = orders[i];
+      const product = await productModel.findOne({ sku: orderItem.item }).lean().exec();
+      if (product) {
+        orderItem.description = product.description;
+      }
+    }
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+})
 
 module.exports = {
-  getOrders,
+  getOrderList
 };

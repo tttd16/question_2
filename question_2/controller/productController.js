@@ -12,6 +12,35 @@ const fillterProduct = asyncHandler(async (req, res) => {
   res.json(fillterP);
 });
 
+
+async function getOrderList(req, res) {
+  try {
+    const orders = await Order.aggregate([
+      {
+        $lookup: {
+          from: 'inventory',
+          localField: 'item',
+          foreignField: 'sku',
+          as: 'product'
+        }
+      },
+      {
+        $project: {
+          _id: 1,
+          item: 1,
+          price: 1,
+          quantity: 1,
+          description: { $arrayElemAt: ['$product.description', 0] }
+        }
+      }
+    ]).exec();
+
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 module.exports = {
   getAllProduct,
   fillterProduct,
